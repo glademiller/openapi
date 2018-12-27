@@ -184,6 +184,45 @@ pub struct Parameter {
     pub format: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub collection_format: Option<CollectionFormat>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub items: Option<Items>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_items: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_items: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub enum CollectionFormat {
+    #[serde(rename = "csv")]
+    CSV,
+    #[serde(rename = "ssv")]
+    SSV,
+    #[serde(rename = "tsv")]
+    TSV,
+    #[serde(rename = "pipes")]
+    PIPES,
+    #[serde(rename = "multi")]
+    MULTI,
+}
+
+impl Default for CollectionFormat {
+    fn default() -> CollectionFormat {
+        CollectionFormat::CSV
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Items {
+    #[serde(rename = "type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub param_type: Option<String>,
+    #[serde(rename = "$ref")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ref_path: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Default)]
@@ -223,6 +262,17 @@ pub enum ParameterOrRef {
         /// of use.  GitHub Flavored Markdown is allowed.
         #[serde(skip_serializing_if = "Option::is_none")]
         description: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "collectionFormat")]
+        collection_format: Option<CollectionFormat>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        items: Option<Items>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "minItems")]
+        min_items: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "maxItems")]
+        max_items: Option<u64>,
         // collectionFormat: ???
         // default: ???
         // maximum ?
@@ -322,7 +372,8 @@ mod tests {
             serde_json::to_string(&Security::ApiKey {
                 name: "foo".into(),
                 location: "query".into(),
-            }).unwrap(),
+            })
+            .unwrap(),
             json
         );
     }
@@ -370,18 +421,19 @@ mod tests {
                 authorization_url: "foo/bar".into(),
                 token_url: None,
                 scopes: scopes,
-            }).unwrap()
+            })
+            .unwrap()
         );
     }
-
-
 
     #[test]
     fn parameter_or_ref_deserializes_ref() {
         let json = r#"{"$ref":"foo/bar"}"#;
         assert_eq!(
             serde_yaml::from_str::<ParameterOrRef>(&json).unwrap(),
-            ParameterOrRef::Ref { ref_path: "foo/bar".into() }
+            ParameterOrRef::Ref {
+                ref_path: "foo/bar".into()
+            }
         );
     }
 
@@ -390,9 +442,10 @@ mod tests {
         let json = r#"{"$ref":"foo/bar"}"#;
         assert_eq!(
             json,
-            serde_json::to_string(
-                &ParameterOrRef::Ref { ref_path: "foo/bar".into() },
-            ).unwrap()
+            serde_json::to_string(&ParameterOrRef::Ref {
+                ref_path: "foo/bar".into()
+            },)
+            .unwrap()
         );
     }
 }
